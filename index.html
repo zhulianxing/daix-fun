@@ -1566,7 +1566,11 @@ function resolveIPFS(uri) {
   if (!uri || uri === '') return '';
   if (uri.startsWith('ipfs://')) {
     var cid = uri.slice(7);
-    // Primary: StarStack (5-node cluster), Fallback: daix.fun gateway
+    // Validate CID: Qm... (46 chars) or bafy... (59 chars)
+    if (!/^(Qm[1-9A-HJ-NP-Za-km-z]{44}|bafy[a-zA-Z0-9]{55,})$/.test(cid)) {
+      console.warn('Invalid CID, falling back to APP_DOWNLOADS:', cid);
+      return '';
+    }
     return STARSTACK_GATEWAY + cid;
   }
   if (uri.startsWith('https://') || uri.startsWith('http://')) return uri;
