@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Allow: /docs.html
+Allow: /apk/
+Disallow: /ethers.umd.min.js
+
+Sitemap: https://daix.fun/sitemap.xml

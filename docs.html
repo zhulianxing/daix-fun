@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>技术文档 · DAIX.fun「带饭」· 自由软件世界</title>
+<meta name="description" content="DAIX.fun 技术文档 - 合约地址、ABI、收益分配、购买流程、安全说明">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%238B5CF6'/><stop offset='100%25' stop-color='%2306B6D4'/></linearGradient></defs><rect width='100' height='100' rx='20' fill='url(%23g)'/><text x='50' y='68' font-size='52' text-anchor='middle' fill='white' font-family='Arial' font-weight='bold'>📖</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#050507;--bg-2:#0A0A0F;--card:#12121A;--card-hover:#1A1A25;
+  --border:#222230;--border-glow:#3A3A50;
+  --text:#F8F8FC;--text-2:#B0B0C0;--text-3:#707088;
+  --accent:#8B5CF6;--accent-2:#06B6D4;--accent-3:#EC4899;
+  --green:#10B981;--red:#F43F5E;--gold:#F59E0B;
+  --radius-xl:24px;--radius-lg:16px;--radius-md:12px;--radius-sm:8px;
+  --glow-purple:0 0 40px rgba(139,92,246,.3);
+  --gradient-hero:linear-gradient(135deg,#8B5CF6 0%,#06B6D4 50%,#EC4899 100%);
+}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);line-height:1.7;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+code{font-family:'JetBrains Mono','SF Mono',monospace;font-size:14px;background:var(--bg-2);padding:2px 6px;border-radius:4px;color:var(--accent-2)}
+pre code{background:none;padding:0;color:inherit}
+pre{background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px 20px;overflow-x:auto;font-size:13px;line-height:1.6;color:var(--text-2);margin:12px 0}
+.bg-grid{position:fixed;inset:0;z-index:-2;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:60px 60px;opacity:.3}
+.bg-gradient{position:fixed;inset:0;z-index:-1;background:radial-gradient(ellipse 80% 50% at 50% -20%,rgba(139,92,246,.15),transparent)}
+
+.nav{position:fixed;top:0;left:0;right:0;z-index:100;height:64px;background:rgba(5,5,7,.8);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 32px}
+.nav-logo{display:flex;align-items:center;gap:12px;font-size:18px;font-weight:800}
+.nav-logo .icon{width:36px;height:36px;background:var(--gradient-hero);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:20px}
+.nav-logo .text{background:var(--gradient-hero);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.nav-links{display:flex;gap:32px;font-size:15px;font-weight:500;color:var(--text-2)}
+.nav-links a{position:relative;padding:8px 0;transition:color .3s}
+.nav-links a:hover{color:var(--text)}
+.nav-links a::after{content:'';position:absolute;bottom:0;left:0;width:0;height:2px;background:var(--gradient-hero);transition:width .3s}
+.nav-links a:hover::after{width:100%}
+.nav-links a.active{color:var(--text)}
+.nav-links a.active::after{width:100%}
+
+.hero{min-height:40vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:100px 24px 60px;position:relative}
+.hero h1{font-size:clamp(36px,6vw,56px);font-weight:900;letter-spacing:-2px;line-height:1.2;margin-bottom:16px;background:var(--gradient-hero);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{font-size:18px;color:var(--text-2);max-width:700px;margin:0 auto}
+
+.container{max-width:1000px;margin:0 auto;padding:0 24px}
+.section{padding:60px 0}
+.section-title{font-size:28px;font-weight:800;margin-bottom:8px;display:flex;align-items:center;gap:12px}
+.section-sub{font-size:15px;color:var(--text-3);margin-bottom:32px}
+.section-divider{border:none;border-top:1px solid var(--border);margin:0}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px;margin-bottom:24px;transition:all .3s}
+.card:hover{border-color:var(--border-glow)}
+.card h3{font-size:18px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.card h4{font-size:15px;font-weight:600;margin:16px 0 8px;color:var(--text-2)}
+
+.contract-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.contract-card{background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-md);padding:20px;transition:all .3s}
+.contract-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.contract-name{font-size:15px;font-weight:600;color:var(--accent-2);font-family:'JetBrains Mono',monospace;word-break:break-all}
+.contract-addr{font-size:12px;color:var(--text-3);font-family:'JetBrains Mono',monospace;word-break:break-all;margin:4px 0}
+.contract-desc{font-size:14px;color:var(--text-2);margin-top:4px}
+
+.func-table{width:100%;border-collapse:collapse;font-size:14px;margin:12px 0}
+.func-table th{text-align:left;padding:10px 12px;background:var(--bg-2);color:var(--text-2);font-weight:600;font-size:13px;border-bottom:1px solid var(--border)}
+.func-table td{padding:10px 12px;border-bottom:1px solid var(--border);color:var(--text-2);font-family:'JetBrains Mono',monospace;font-size:13px}
+.func-table tr:hover td{background:var(--card-hover);color:var(--text)}
+.func-table .func-name{color:var(--accent-2);font-weight:500}
+.func-table .func-desc{font-family:'Inter',sans-serif;color:var(--text-3);font-size:12px}
+
+.app-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.app-item{background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-md);padding:20px;transition:all .3s}
+.app-item:hover{border-color:var(--accent);transform:translateY(-2px)}
+.app-item .app-icon{font-size:32px;margin-bottom:8px}
+.app-item .app-name{font-size:16px;font-weight:700;margin-bottom:4px}
+.app-item .app-pkg{font-size:12px;color:var(--text-3);font-family:'JetBrains Mono',monospace}
+.app-item .app-price{font-size:18px;font-weight:800;color:var(--accent-2);margin:8px 0}
+.app-item .app-desc{font-size:13px;color:var(--text-2)}
+
+.flow-steps{display:flex;flex-wrap:wrap;gap:16px;margin:16px 0}
+.flow-step{flex:1;min-width:150px;background:var(--bg-2);border:1px solid var(--border);border-radius:var(--radius-md);padding:20px;text-align:center}
+.flow-step .num{width:32px;height:32px;background:var(--gradient-hero);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;margin:0 auto 12px}
+.flow-step h5{font-size:14px;font-weight:600;margin-bottom:6px}
+.flow-step p{font-size:13px;color:var(--text-3);line-height:1.5}
+
+.split-bars{margin:20px 0}
+.split-bar{display:flex;align-items:center;gap:16px;margin:8px 0}
+.split-bar-fill{height:36px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;min-width:40px;transition:width .5s}
+.split-bar-label{font-size:14px;color:var(--text-2);font-weight:500;min-width:100px}
+.split-bar-pct{font-size:13px;color:var(--text-3);min-width:40px;text-align:right}
+
+.footer{text-align:center;padding:60px 0;border-top:1px solid var(--border);margin-top:60px}
+.footer-links{display:flex;gap:24px;justify-content:center;margin:16px 0;font-size:14px;color:var(--text-2)}
+.footer-links a:hover{color:var(--text)}
+.footer-copy{font-size:13px;color:var(--text-3)}
+
+@media(max-width:768px){
+.nav{padding:0 20px}.nav-links{display:none}.container{padding:0 20px}
+.hero{padding:80px 24px 40px}
+.contract-grid,.app-grid{grid-template-columns:1fr}.flow-steps{flex-direction:column}
+}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-gradient"></div>
+
+<nav class="nav">
+<a href="/" class="nav-logo">
+<span class="icon">🌐</span>
+<span class="text">DAIX.fun「带饭」</span>
+</a>
+<div class="nav-links">
+<a href="/">首页</a>
+<a href="/#apps">应用</a>
+<a href="/#developers">创作者</a>
+<a href="docs.html" class="active">技术文档</a>
+</div>
+</nav>
+
+<section class="hero">
+<h1>📖 技术文档</h1>
+<p>DAIX.fun「带饭」· 自由软件世界 · 重新定义软件分发</p>
+<p style="font-size:14px;color:var(--text-3);margin-top:12px">合约地址 · ABI · 收益分配 · 购买流程 · APP 清单 · 安全说明</p>
+</section>
+
+<div class="container">
+
+<!-- 技术架构 -->
+<section class="section">
+<h2 class="section-title">🏗️ 技术架构</h2>
+<p class="section-sub">DAIX.fun 是一套去中心化应用分发平台，基于 Polygon 主网构建</p>
+<div class="card">
+<h3>🖥️ 技术栈</h3>
+<div class="contract-grid" style="margin-top:12px">
+<div class="contract-card">
+<div class="contract-name" style="color:var(--accent)">Blockchain</div>
+<div class="contract-desc">Polygon 主网 (Chain ID: 137)<br><code>0x89</code></div>
+</div>
+<div class="contract-card">
+<div class="contract-name" style="color:var(--accent-2)">Smart Contracts</div>
+<div class="contract-desc">Solidity 0.8.25<br>Hardhat + TypeScript</div>
+</div>
+<div class="contract-card">
+<div class="contract-name" style="color:var(--accent-3)">Frontend</div>
+<div class="contract-desc">HTML/CSS/JS + ethers.js v6.17<br>JsonRpcProvider (只读)</div>
+</div>
+<div class="contract-card">
+<div class="contract-name" style="color:var(--gold)">Payment</div>
+<div class="contract-desc">USDC (ERC-20)<br>6 decimals</div>
+</div>
+</div>
+</div>
+</section>
+
+<hr class="section-divider">
+
+<!-- 合约地址 -->
+<section class="section">
+<h2 class="section-title">📜 合约地址</h2>
+<p class="section-sub">所有合约已部署至 Polygon 主网，可在 Polygonscan 上源文件验证</p>
+
+<div class="contract-grid">
+<a href="https://polygonscan.com/address/0x8EE775e943C31EA7c4eF2B7bb83e0651c9d04001" target="_blank" class="contract-card" style="display:block">
+<div class="contract-name">DeveloperRegistry</div>
+<div class="contract-addr">0x8EE775e943C31EA7c4eF2B7bb83e0651c9d04001</div>
+<div class="contract-desc">创作者注册管理 — 绑定钱包地址，记录开发者链上身份</div>
+</a>
+<a href="https://polygonscan.com/address/0xdFCFA7d871cCc3674d873d00192Ba26a685B2b68" target="_blank" class="contract-card" style="display:block">
+<div class="contract-name">AppRegistry</div>
+<div class="contract-addr">0xdFCFA7d871cCc3674d873d00192Ba26a685B2b68</div>
+<div class="contract-desc">应用注册管理 — APP 元数据（名称/包名/价格/IPFS URI）链上存储</div>
+</a>
+<a href="https://polygonscan.com/address/0x7Ed65226C66b188f66AA0e5483917B1C33a41225" target="_blank" class="contract-card" style="display:block">
+<div class="contract-name">LicenseNFT</div>
+<div class="contract-addr">0x7Ed65226C66b188f66AA0e5483917B1C33a41225</div>
+<div class="contract-desc">NFT 数字凭证 — 基于 ERC-721 标准，每个 NFT 代表一个应用的永久激活码</div>
+</a>
+<a href="https://polygonscan.com/address/0xeed4653f341F810e00A73c6ECD454a1205C0Cabb" target="_blank" class="contract-card" style="display:block">
+<div class="contract-name">PromoterRegistry</div>
+<div class="contract-addr">0xeed4653f341F810e00A73c6ECD454a1205C0Cabb</div>
+<div class="contract-desc">推广者注册管理 — 推广码绑定、佣金结算、推广者身份验证</div>
+</a>
+<a href="https://polygonscan.com/address/0xb36Fd748026097e0F18A644452E739DECf4d0686" target="_blank" class="contract-card" style="display:block">
+<div class="contract-name">LicenseQuery</div>
+<div class="contract-addr">0xb36Fd748026097e0F18A644452E739DECf4d0686</div>
+<div class="contract-desc">许可证查询 — 验证 NFT 持有状态、按包名查询 APP、查询用户许可证</div>
+</a>
+<a href="https://polygonscan.com/address/0x698c00CD9e94353C6ef804e670bc558108250f9D" target="_blank" class="contract-card" style="display:block">
+<div class="contract-name">RevenueSplit</div>
+<div class="contract-addr">0x698c00CD9e94353C6ef804e670bc558108250f9D</div>
+<div class="contract-desc">收益分账 — 二级市场版税计算（5%）</div>
+</a>
+<a href="https://polygonscan.com/token/0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359" target="_blank" class="contract-card" style="display:block">
+<div class="contract-name">USDC</div>
+<div class="contract-addr">0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359</div>
+<div class="contract-desc">Circle 官方 USDC（Polygon 主网），6位小数精度</div>
+</a>
+</div>
+</section>
+
+<hr class="section-divider">
+
+<!-- APP 清单 -->
+<section class="section">
+<h2 class="section-title">📱 已注册 APP 清单</h2>
+<p class="section-sub">链上已注册的 9 款应用，全部状态正常</p>
+
+<div class="app-grid">
+<div class="app-item">
+<div class="app-icon">🏪</div>
+<div class="app-name">VIP迎宾</div>
+<div class="app-pkg">com.storeguard.vipreception</div>
+<div class="app-price">198 USDC</div>
+<div class="app-desc">智能识别 VIP 客户，自动推送迎宾语，提升门店服务体验</div>
+</div>
+<div class="app-item">
+<div class="app-icon">🔍</div>
+<div class="app-name">走失守护</div>
+<div class="app-pkg">com.guardianfind.missingperson</div>
+<div class="app-price">99 USDC</div>
+<div class="app-desc">人脸识别寻人，帮助走失人员快速回家</div>
+</div>
+<div class="app-item">
+<div class="app-icon">🛡️</div>
+<div class="app-name">商铺防损</div>
+<div class="app-pkg">com.lossguard.shopsecurity</div>
+<div class="app-price">128 USDC</div>
+<div class="app-desc">智能行为分析，实时预警可疑行为，降低商铺损耗</div>
+</div>
+<div class="app-item">
+<div class="app-icon">⏰</div>
+<div class="app-name">刷脸考勤</div>
+<div class="app-pkg">com.attendanceguard.clock</div>
+<div class="app-price">298 USDC</div>
+<div class="app-desc">人脸识别考勤，杜绝代打卡，自动生成考勤报表</div>
+</div>
+<div class="app-item">
+<div class="app-icon">📊</div>
+<div class="app-name">客流统计</div>
+<div class="app-pkg">com.visitorcount.analysis</div>
+<div class="app-price">198 USDC</div>
+<div class="app-desc">精准客流分析，热力图展示，助力商业决策</div>
+</div>
+<div class="app-item">
+<div class="app-icon">⛳</div>
+<div class="app-name">高尔夫测距</div>
+<div class="app-pkg">com.golfranger.distancemeter</div>
+<div class="app-price">168 USDC</div>
+<div class="app-desc">视觉测距，精准到码，提升高尔夫球技</div>
+</div>
+<div class="app-item">
+<div class="app-icon">🏥</div>
+<div class="app-name">跌倒守护</div>
+<div class="app-pkg">com.falldetect.guardian</div>
+<div class="app-price">268 USDC</div>
+<div class="app-desc">姿态检测跌倒，自动报警通知家属，守护老人安全</div>
+</div>
+<div class="app-item">
+<div class="app-icon">👴</div>
+<div class="app-name">长者守护</div>
+<div class="app-pkg">com.elderguard.care</div>
+<div class="app-price">268 USDC</div>
+<div class="app-desc">全方位老人看护，跌倒检测+异常行为+语音求助</div>
+</div>
+<div class="app-item">
+<div class="app-icon">📸</div>
+<div class="app-name">单点抓拍</div>
+<div class="app-pkg">com.localguard.pedestriancapture</div>
+<div class="app-price">128 USDC</div>
+<div class="app-desc">指定区域行人抓拍，特征提取+比对，安防利器</div>
+</div>
+</div>
+</section>
+
+<hr class="section-divider">
+
+<!-- 合约 ABI -->
+<section class="section">
+<h2 class="section-title">🔧 合约函数</h2>
+<p class="section-sub">核心合约的关键接口函数及说明</p>
+
+<div class="card">
+<h3>DeveloperRegistry</h3>
+<table class="func-table">
+<tr><th>函数</th><th>参数</th><th>说明</th></tr>
+<tr><td class="func-name">register</td><td>(name, metadataURI)</td><td class="func-desc">注册为创作者</td></tr>
+<tr><td class="func-name">updateProfile</td><td>(name, metadataURI)</td><td class="func-desc">更新创作者资料</td></tr>
+<tr><td class="func-name">isRegistered</td><td>(address) → bool</td><td class="func-desc">查询地址是否已注册</td></tr>
+<tr><td class="func-name">developerCount</td><td>() → uint256</td><td class="func-desc">获取创作者总数</td></tr>
+<tr><td class="func-name">getAllDevelopers</td><td>() → address[]</td><td class="func-desc">获取所有创作者地址列表</td></tr>
+<tr><td class="func-name">getDeveloper</td><td>(address) → Developer</td><td class="func-desc">获取创作者详细信息</td></tr>
+</table>
+</div>
+
+<div class="card">
+<h3>AppRegistry</h3>
+<table class="func-table">
+<tr><th>函数</th><th>参数</th><th>说明</th></tr>
+<tr><td class="func-name">registerApp</td><td>(name, pkg, desc, apkURI, iconURI, price, trialDays, version)</td><td class="func-desc">注册新应用（需先注册为创作者）</td></tr>
+<tr><td class="func-name">updateApp</td><td>(appId, version, apkURI, price)</td><td class="func-desc">更新应用信息（版本/APK/价格）</td></tr>
+<tr><td class="func-name">deactivateApp</td><td>(appId)</td><td class="func-desc">下架应用（仅开发者）</td></tr>
+<tr><td class="func-name">nextAppId</td><td>() → uint256</td><td class="func-desc">下一个应用 ID（总数 = nextAppId-1）</td></tr>
+<tr><td class="func-name">apps</td><td>(uint256 appId) → App</td><td class="func-desc">按 ID 查询应用详情</td></tr>
+<tr><td class="func-name">getApp</td><td>(uint256 appId) → App</td><td class="func-desc">获取应用完整信息</td></tr>
+<tr><td class="func-name">getActiveApps</td><td>() → App[]</td><td class="func-desc">获取所有活跃应用列表</td></tr>
+<tr><td class="func-name">getDeveloperApps</td><td>(address) → uint256[]</td><td class="func-desc">获取某开发者的所有 APP ID</td></tr>
+</table>
+</div>
+
+<div class="card">
+<h3>LicenseNFT (ERC-721)</h3>
+<table class="func-table">
+<tr><th>函数</th><th>参数</th><th>说明</th></tr>
+<tr><td class="func-name">mintLicense</td><td>(appId, agent)</td><td class="func-desc">购买应用数字凭证，自动分账，铸造NFT</td></tr>
+<tr><td class="func-name">batchMint</td><td>(appId, quantity)</td><td class="func-desc">批量购买（代理商专用），一次购买多个许可证</td></tr>
+<tr><td class="func-name">activateLicense</td><td>(tokenId, deviceFingerprint)</td><td class="func-desc">激活 NFT 凭证（绑定设备指纹）</td></tr>
+<tr><td class="func-name">transferFrom</td><td>(from, to, tokenId)</td><td class="func-desc">转让 NFT 给其他地址</td></tr>
+<tr><td class="func-name">licenses</td><td>(tokenId) → License</td><td class="func-desc">查询 NFT 凭证详情</td></tr>
+<tr><td class="func-name">totalSupply</td><td>() → uint256</td><td class="func-desc">已发行的 NFT 总数</td></tr>
+<tr><td class="func-name">balanceOf</td><td>(address) → uint256</td><td class="func-desc">查询地址持有的 NFT 数量</td></tr>
+<tr><td class="func-name">ownerOf</td><td>(tokenId) → address</td><td class="func-desc">查询 NFT 持有者</td></tr>
+<tr><td class="func-name">tokenOfOwnerByIndex</td><td>(address, index) → uint256</td><td class="func-desc">查询地址持有的第 N 个 NFT 的 ID</td></tr>
+</table>
+</div>
+
+<div class="card">
+<h3>PromoterRegistry</h3>
+<table class="func-table">
+<tr><th>函数</th><th>参数</th><th>说明</th></tr>
+<tr><td class="func-name">register</td><td>(name, referralCode)</td><td class="func-desc">注册为推广者（推广码全局唯一）</td></tr>
+<tr><td class="func-name">updateName</td><td>(newName)</td><td class="func-desc">更新推广者名称</td></tr>
+<tr><td class="func-name">isPromoter</td><td>(address) → bool</td><td class="func-desc">查询地址是否已注册推广者</td></tr>
+<tr><td class="func-name">getByCode</td><td>(code) → address</td><td class="func-desc">通过推广码获取推广者地址</td></tr>
+<tr><td class="func-name">getPromoter</td><td>(address) → Promoter</td><td class="func-desc">获取推广者详细信息</td></tr>
+<tr><td class="func-name">promoterCount</td><td>() → uint256</td><td class="func-desc">获取推广者总数</td></tr>
+</table>
+</div>
+
+<div class="card">
+<h3>LicenseQuery（只读查询）</h3>
+<table class="func-table">
+<tr><th>函数</th><th>参数</th><th>说明</th></tr>
+<tr><td class="func-name">verifyLicense</td><td>(user, appId) → (bool, tokenId)</td><td class="func-desc">验证用户是否持有某 APP 的许可证</td></tr>
+<tr><td class="func-name">getUserLicenses</td><td>(user) → (tokenIds[], appIds[])</td><td class="func-desc">获取用户持有的所有许可证</td></tr>
+<tr><td class="func-name">getAppByPackageName</td><td>(packageName) → (appId, found)</td><td class="func-desc">通过包名查询 APP ID</td></tr>
+<tr><td class="func-name">getAppsByDeveloper</td><td>(dev) → appIds[]</td><td class="func-desc">获取某开发者的所有 APP</td></tr>
+</table>
+</div>
+
+<div class="card">
+<h3>USDC (ERC-20)</h3>
+<table class="func-table">
+<tr><th>函数</th><th>参数</th><th>说明</th></tr>
+<tr><td class="func-name">approve</td><td>(spender, amount)</td><td class="func-desc">授权 LicenseNFT 合约消耗 USDC</td></tr>
+<tr><td class="func-name">allowance</td><td>(owner, spender) → uint256</td><td class="func-desc">查询授权额度</td></tr>
+<tr><td class="func-name">balanceOf</td><td>(address) → uint256</td><td class="func-desc">查询 USDC 余额</td></tr>
+<tr><td class="func-name">transfer</td><td>(to, amount)</td><td class="func-desc">转账 USDC</td></tr>
+<tr><td class="func-name">transferFrom</td><td>(from, to, amount)</td><td class="func-desc">合约内部转账（由 LicenseNFT 调用）</td></tr>
+</table>
+</div>
+</section>
+
+<hr class="section-divider">
+
+<!-- 收益分配 -->
+<section class="section">
+<h2 class="section-title">💎 收益分配机制</h2>
+<p class="section-sub">智能合约在每次购买时自动分账，实时到账，完全透明可验证</p>
+
+<div class="card">
+<h3>📊 分配比例</h3>
+<div class="split-bars">
+<div class="split-bar">
+<div class="split-bar-label">👨‍💻 创作者</div>
+<div class="split-bar-fill" style="width:60%;background:linear-gradient(90deg,#8B5CF6,#A78BFA)">60%</div>
+<div class="split-bar-pct">60%</div>
+</div>
+<div class="split-bar">
+<div class="split-bar-label">📣 推广者</div>
+<div class="split-bar-fill" style="width:25%;background:linear-gradient(90deg,#EC4899,#F472B6)">25%</div>
+<div class="split-bar-pct">25%</div>
+</div>
+<div class="split-bar">
+<div class="split-bar-label">🌐 生态基金</div>
+<div class="split-bar-fill" style="width:10%;background:linear-gradient(90deg,#06B6D4,#22D3EE)">10%</div>
+<div class="split-bar-pct">10%</div>
+</div>
+<div class="split-bar">
+<div class="split-bar-label">⚡ 网络结算</div>
+<div class="split-bar-fill" style="width:5%;background:linear-gradient(90deg,#707088,#9CA3AF)">5%</div>
+<div class="split-bar-pct">5%</div>
+</div>
+</div>
+
+<h4>💡 无推广者时的分配</h4>
+<p style="font-size:14px;color:var(--text-2);margin-bottom:16px">如果购买时没有推广者（直接购买），推广者 25% 归入创作者，即创作者获得 85%</p>
+
+<h4>代码实现</h4>
+<pre><code>uint256 public constant DEV_SHARE = 6000;      // 60% 创作者
+uint256 public constant AGENT_SHARE = 2500;    // 25% 推广者
+uint256 public constant PLATFORM_SHARE = 1000; // 10% 生态基金
+uint256 public constant GAS_SHARE = 500;       // 5%  网络结算
+
+// 分账逻辑
+uint256 devAmount = (price * DEV_SHARE) / 10000;
+uint256 agentAmount = (agent != address(0)) ? (price * AGENT_SHARE) / 10000 : 0;
+uint256 platformAmount = (price * PLATFORM_SHARE) / 10000;
+uint256 gasAmount = (price * GAS_SHARE) / 10000;
+uint256 devTotal = devAmount + agentAmount;  // 无推广者时归开发者
+
+usdc.transfer(app.developer, devTotal);
+usdc.transfer(platformWallet, platformAmount);
+usdc.transfer(gasWallet, gasAmount);
+if (agent != address(0)) usdc.transfer(agent, agentAmount);</code></pre>
+</div>
+</section>
+
+<hr class="section-divider">
+
+<!-- 购买流程 -->
+<section class="section">
+<h2 class="section-title">🛒 购买流程</h2>
+<p class="section-sub">从钱包连接到获得 NFT 数字凭证，全程链上操作</p>
+
+<div class="card">
+<div class="flow-steps">
+<div class="flow-step">
+<div class="num">1</div>
+<h5>🔗 连接钱包</h5>
+<p>浏览器安装 MetaMask，选择 Polygon 网络，点击「连接钱包」</p>
+</div>
+<div class="flow-step">
+<div class="num">2</div>
+<h5>📱 选择应用</h5>
+<p>浏览应用商店，点击心仪应用的「获取数字凭证」按钮</p>
+</div>
+<div class="flow-step">
+<div class="num">3</div>
+<h5>✅ 授权 USDC</h5>
+<p>钱包弹出授权交易，允许 LicenseNFT 合约使用对应金额的 USDC</p>
+</div>
+<div class="flow-step">
+<div class="num">4</div>
+<h5>🔑 铸造 NFT</h5>
+<p>第二笔交易 mintLicense，智能合约自动分账，NFT 即时到账</p>
+</div>
+</div>
+
+<h4>交易步骤详解</h4>
+<pre><code>// Step 1: 授权 USDC
+usdc.approve(LicenseNFT, price);
+// → 用户钱包确认
+
+// Step 2: 铸造数字凭证
+licenseNFT.mintLicense(appId, agentAddress);
+// → 自动分账：创作者 60% | 推广者 25% | 生态 10% | 网络 5%
+// → 铸造 ERC-721 NFT 到用户钱包</code></pre>
+
+<h4 style="margin-top:20px">浏览器端只读查询</h4>
+<p style="color:var(--text-2);font-size:14px">无需钱包也可浏览应用列表和链上统计数据：</p>
+<pre><code>// 只读 Provider
+const provider = new ethers.JsonRpcProvider('https://polygon-bor-rpc.publicnode.com');
+
+// 查询应用列表
+const apps = await appRegistry.getActiveApps();
+
+// 查询统计数据
+const count = await appRegistry.nextAppId();
+const devs = await devRegistry.developerCount();</code></pre>
+</div>
+</section>
+
+<hr class="section-divider">
+
+<!-- 安全说明 -->
+<section class="section">
+<h2 class="section-title">🛡️ 安全特性</h2>
+<p class="section-sub">无后端、无中心化服务器、无资金托管</p>
+
+<div class="card">
+<div class="contract-grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+<div class="contract-card">
+<h4>✅ 无需信任</h4>
+<p style="font-size:14px;color:var(--text-3);margin-top:4px">收益分配在智能合约中自动执行，不存在平台拖欠或抽成</p>
+</div>
+<div class="contract-card">
+<h4>✅ 开源可验证</h4>
+<p style="font-size:14px;color:var(--text-3);margin-top:4px">所有合约代码可在 Polygonscan 查看，前端纯静态无后端</p>
+</div>
+<div class="contract-card">
+<h4>✅ NFT 标准化</h4>
+<p style="font-size:14px;color:var(--text-3);margin-top:4px">基于 OpenZeppelin ERC-721 标准，Ownable 权限控制</p>
+</div>
+<div class="contract-card">
+<h4>✅ 全额上链</h4>
+<p style="font-size:14px;color:var(--text-3);margin-top:4px">从注册、发布到购买，所有数据永久记录在 Polygon 链上</p>
+</div>
+</div>
+</div>
+</section>
+
+<hr class="section-divider">
+
+<!-- 快速起步 -->
+<section class="section">
+<h2 class="section-title">🚀 快速起步</h2>
+<p class="section-sub">1 分钟了解如何开始使用 DAIX.fun</p>
+
+<div class="card">
+<h3>👤 作为用户</h3>
+<ol style="color:var(--text-2);line-height:2.2;padding-left:20px;font-size:15px">
+<li>安装 <a href="https://metamask.io" style="color:var(--accent-2)" target="_blank">MetaMask</a> 浏览器钱包</li>
+<li>向钱包充值 Polygon 主网 USDC 和少量 POL（作为 Gas 费）</li>
+<li>打开 <strong><a href="https://daix.fun" style="color:var(--accent-2)">DAIX.fun</a></strong></li>
+<li>浏览应用，点击「获取数字凭证」完成购买</li>
+<li>在「我的数字凭证」中查看和管理持有的 NFT 凭证</li>
+</ol>
+</div>
+
+<div class="card">
+<h3>👨‍💻 作为创作者</h3>
+<ol style="color:var(--text-2);line-height:2.2;padding-left:20px;font-size:15px">
+<li>连接钱包，进入「创作者中心」</li>
+<li>注册创作者身份（仅需名称，链上永久有效）</li>
+<li>发布应用（填写名称、包名、价格等信息）</li>
+<li>选择 APK 文件，自动上传至 <strong>IPFS</strong> 去中心化存储</li>
+<li>APK 的 IPFS CID 写入链上 <code>apkURI</code> 字段，永久可追溯</li>
+<li>用户购买后自动获得 60% 收益分成</li>
+</ol>
+<div style="margin-top:16px;padding:14px;background:var(--bg-2);border-radius:12px;border:1px solid var(--border);font-size:13px;color:var(--text-3)">
+<strong style="color:var(--accent-2)">📦 IPFS 去中心化存储</strong><br>
+APK 文件通过 Pinata API 上传至 IPFS 网络，获得唯一 CID。<br>
+下载链接从链上 <code>apkURI</code> 字段读取，解析为 IPFS 公共网关 URL。<br>
+创作者无需自建服务器，APP 文件全球可访问、抗审查。
+</div>
+</div>
+
+<div class="card">
+<h3>📣 作为推广者</h3>
+<ol style="color:var(--text-2);line-height:2.2;padding-left:20px;font-size:15px">
+<li>连接钱包，进入「推广者中心」</li>
+<li>注册推广者身份（设置名称和唯一推广码）</li>
+<li>生成推广链接：<code>https://daix.fun/?agent=你的钱包地址</code></li>
+<li>用户通过你的链接购买，你自动获得 25% 佣金</li>
+</ol>
+</div>
+</section>
+
+<hr class="section-divider">
+
+<!-- 相关文档 -->
+<section class="section">
+<h2 class="section-title">📚 相关文档</h2>
+<p class="section-sub">完整的开发者和用户文档体系</p>
+
+<div class="contract-grid">
+<a href="agent-playbook.md" class="contract-card" style="display:block">
+<div class="contract-name">🤖 Agent Playbook</div>
+<div class="contract-desc">AI 自动执行手册 — 读取后可自动完成 APP 开发、构建、上传、上架全流程</div>
+</a>
+<a href="technical-reference.md" class="contract-card" style="display:block">
+<div class="contract-name">📖 技术参考手册</div>
+<div class="contract-desc">完整技术文档 — 合约规范、Web3LicenseManager 集成、前端 DApp 开发</div>
+</a>
+<a href="developer-guide.md" class="contract-card" style="display:block">
+<div class="contract-name">👨‍💻 开发者接入标准</div>
+<div class="contract-desc">业务流程 — 注册、发布、定价、FTP 上传、更新版本</div>
+</a>
+<a href="promoter-guide.md" class="contract-card" style="display:block">
+<div class="contract-name">📣 推广者指南</div>
+<div class="contract-desc">推广码注册、推广链接生成、佣金结算说明</div>
+</a>
+<a href="user-guide.md" class="contract-card" style="display:block">
+<div class="contract-name">👤 用户指南</div>
+<div class="contract-desc">钱包安装、USDC 充值、购买流程、激活码使用</div>
+</a>
+<a href="control-panel.md" class="contract-card" style="display:block">
+<div class="contract-name">⚙️ 控制面板文档</div>
+<div class="contract-desc">管理后台技术文档 — 合约管理、数据监控、运维操作</div>
+</a>
+</div>
+</section>
+
+</div>
+
+<footer class="footer">
+<div class="footer-links">
+<a href="/">首页</a>
+<a href="docs.html">技术文档</a>
+<a href="https://polygonscan.com" target="_blank">Polygonscan</a>
+<a href="https://github.com/zhulianxing/daix-fun" target="_blank">GitHub</a>
+</div>
+<p class="footer-copy">© 2026 daix.fun「带饭」· 自由软件世界 · 重新定义软件分发</p>
+</footer>
+
+</body>
+</html>

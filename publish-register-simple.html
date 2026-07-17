@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>注册 DAIX.fun 开发者</title>
+  <style>
+    body { margin:0; background:#050507; color:#fff; font-family:Arial, sans-serif; padding:24px; }
+    h1 { font-size:32px; margin:40px 0 16px; }
+    p { color:#aaa; font-size:18px; line-height:1.6; }
+    button { display:block; width:100%; margin:28px 0; padding:24px 18px; border:0; border-radius:10px; background:#22c55e; color:#050507; font-size:22px; font-weight:800; }
+    pre { white-space:pre-wrap; word-break:break-word; background:#12121a; border:1px solid #333; padding:16px; border-radius:10px; color:#c9c9dd; font-size:16px; }
+  </style>
+</head>
+<body>
+  <h1>注册开发者</h1>
+  <p>把当前 MetaMask 钱包注册为 DAIX.fun 自动应用工厂开发者。</p>
+  <button onclick="go()">发起注册交易</button>
+  <button onclick="connectOnly()">只连接钱包</button>
+  <pre id="log">等待操作...</pre>
+
+<script>
+var CHAIN_ID = '0x89';
+var TO = '0x8EE775e943C31EA7c4eF2B7bb83e0651c9d04001';
+var DATA = '0x3ffbd47f00000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000000000000001b444149582e66756e20e887aae58aa8e5ba94e794a8e5b7a5e58e8200000000000000000000000000000000000000000000000000000000000000000000000000';
+var log = document.getElementById('log');
+
+function write(text) {
+  log.textContent = text;
+}
+
+function fail(err) {
+  write('失败：' + ((err && err.message) || String(err)));
+}
+
+function connectOnly() {
+  if (!window.ethereum) {
+    write('没有检测到 MetaMask 注入对象，请确认在 MetaMask 浏览器内打开。');
+    return;
+  }
+  write('正在连接钱包...');
+  window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: CHAIN_ID }] })
+    .then(function() { return window.ethereum.request({ method: 'eth_requestAccounts' }); })
+    .then(function(accounts) { write('已连接：' + accounts[0]); })
+    .catch(fail);
+}
+
+function go() {
+  if (!window.ethereum) {
+    write('没有检测到 MetaMask 注入对象，请确认在 MetaMask 浏览器内打开。');
+    return;
+  }
+  write('正在连接钱包...');
+  window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: CHAIN_ID }] })
+    .then(function() { return window.ethereum.request({ method: 'eth_requestAccounts' }); })
+    .then(function(accounts) {
+      write('已连接：' + accounts[0] + '\n正在请求 MetaMask 确认交易...');
+      return window.ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [{
+          from: accounts[0],
+          to: TO,
+          data: DATA,
+          gas: '0x493e0',
+          gasPrice: '0x517da13700'
+        }]
+      });
+    })
+    .then(function(hash) { write('交易已提交：' + hash); })
+    .catch(fail);
+}
+</script>
+</body>
+</html>

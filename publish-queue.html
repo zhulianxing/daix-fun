@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>发布排队长度统计 · DAIX.fun</title>
+  <style>
+    :root { color-scheme: dark; --bg:#050507; --panel:#12121a; --line:#252538; --text:#f8f8fc; --muted:#a0a0b8; --cyan:#06b6d4; --green:#22c55e; --violet:#8b5cf6; --red:#f43f5e; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:var(--bg); color:var(--text); }
+    main { max-width: 760px; margin: 0 auto; padding: 28px 18px 80px; }
+    h1 { margin: 0 0 8px; font-size: 30px; }
+    p { color: var(--muted); line-height: 1.65; }
+    .card { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); padding: 18px; margin-top: 16px; }
+    .row { display:flex; justify-content:space-between; gap:14px; padding:10px 0; border-bottom:1px solid rgba(255,255,255,.06); }
+    .row:last-child { border-bottom:0; }
+    .key { color: var(--muted); }
+    .val { text-align:right; word-break:break-all; }
+button { width:100%; border:0; border-radius:12px; padding:16px; margin-top:12px; color:#050507; background:linear-gradient(135deg, var(--cyan), var(--green), #f6c54a); font-size:16px; font-weight:800; }
+    button.secondary { background:transparent; color:var(--text); border:1px solid var(--violet); }
+    button:disabled { opacity:.5; }
+    .status { margin-top:14px; padding:14px; border:1px solid var(--line); border-radius:12px; color:var(--muted); white-space:pre-wrap; word-break:break-word; }
+    .ok { color: var(--green); }
+    .err { color: var(--red); }
+    code { color: var(--cyan); }
+  </style>
+</head>
+<body>
+<main>
+  <h1>发布排队长度统计</h1>
+  <p>使用测试手机 MetaMask 钱包作为开发者身份，发布昨天生成的排队长度统计 App。以后自动生成的软件也可以继续用这个钱包作为开发者。</p>
+
+  <section class="card">
+    <div class="row"><div class="key">钱包</div><div class="val" id="wallet">未连接</div></div>
+    <div class="row"><div class="key">网络</div><div class="val">Polygon Mainnet</div></div>
+    <button id="connectBtn" onclick="window.connect && window.connect()">连接 MetaMask</button>
+    <button class="secondary" id="checkBtn" onclick="window.checkStatus && window.checkStatus()">检查链上状态</button>
+    <button class="secondary" id="forceRegisterBtn" onclick="window.forceRegister && window.forceRegister()" ontouchend="window.forceRegister && window.forceRegister()">强制发起注册交易</button>
+  </section>
+
+  <section class="card">
+    <div class="row"><div class="key">开发者名</div><div class="val">DAIX.fun 自动应用工厂</div></div>
+    <button class="secondary" id="registerBtn" onclick="window.forceRegister && window.forceRegister()" disabled>1. 注册为开发者</button>
+  </section>
+
+  <section class="card">
+    <div class="row"><div class="key">应用名称</div><div class="val">排队长度统计</div></div>
+    <div class="row"><div class="key">包名</div><div class="val"><code>com.queueguard.length</code></div></div>
+    <div class="row"><div class="key">APK</div><div class="val"><code>https://daix.fun/apk/queuelength.apk</code></div></div>
+    <div class="row"><div class="key">价格</div><div class="val">168 USDC</div></div>
+    <button id="publishBtn" onclick="window.forcePublish && window.forcePublish()" disabled>2. 发布应用上链</button>
+  </section>
+
+  <div class="status" id="status">准备连接钱包。</div>
+</main>
+
+<script>
+const CHAIN_ID_HEX = '0x89';
+const RPC_URL = 'https://polygon.drpc.org';
+const EXPLORER = 'https://polygonscan.com';
+const DEVELOPER_REGISTRY = '0x8EE775e943C31EA7c4eF2B7bb83e0651c9d04001';
+const APP_REGISTRY = '0xdFCFA7d871cCc3674d873d00192Ba26a685B2b68';
+const LICENSE_QUERY = '0xb36Fd748026097e0F18A644452E739DECf4d0686';
+const CALL_DATA = {
+  isRegisteredPrefix: '0xc3c5a547000000000000000000000000',
+  getApp: '0x58e3059200000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000015636f6d2e717565756567756172642e6c656e6774680000000000000000000000',
+  register: '0x3ffbd47f00000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000000000000001b444149582e66756e20e887aae58aa8e5ba94e794a8e5b7a5e58e8200000000000000000000000000000000000000000000000000000000000000000000000000',
+  publish: '0xc7a4b9db00000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000140000000000000000000000000000000000000000000000000000000000000018000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000260000000000000000000000000000000000000000000000000000000000a037a00000000000000000000000000000000000000000000000000000000000000000700000000000000000000000000000000000000000000000000000000000002800000000000000000000000000000000000000000000000000000000000000012e68e92e9989fe995bfe5baa6e7bb9fe8aea100000000000000000000000000000000000000000000000000000000000000000000000000000000000000015636f6d2e717565756567756172642e6c656e67746800000000000000000000000000000000000000000000000000000000000000000000000000000000000045e7aa97e58fa3e38081e694b6e993b6e58fb0e68896e8af8ae5aea4e997a8e58fa3e68e92e9989fe4babae695b0e7bb9fe8aea1e4b88ee68ba5e5a0b5e68f90e98692e38082000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002468747470733a2f2f646169782e66756e2f61706b2f71756575656c656e6774682e61706b000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000676312e302e300000000000000000000000000000000000000000000000000000'
+};
+
+let account = '';
+const statusEl = document.getElementById('status');
+const walletEl = document.getElementById('wallet');
+const connectBtn = document.getElementById('connectBtn');
+const checkBtn = document.getElementById('checkBtn');
+const forceRegisterBtn = document.getElementById('forceRegisterBtn');
+const registerBtn = document.getElementById('registerBtn');
+const publishBtn = document.getElementById('publishBtn');
+
+function setStatus(text, cls) {
+  statusEl.className = 'status ' + (cls || '');
+  statusEl.textContent = text;
+}
+
+function strip0x(value) {
+  return String(value || '').toLowerCase().replace(/^0x/, '');
+}
+
+function decodeBool(result) {
+  return strip0x(result).endsWith('1');
+}
+
+function decodeUintAt(result, index) {
+  const hex = strip0x(result).slice(index * 64, index * 64 + 64) || '0';
+  return BigInt('0x' + hex);
+}
+
+async function rpcCall(to, data) {
+  const response = await fetch(RPC_URL, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: Date.now(), method: 'eth_call', params: [{ to, data }, 'latest'] })
+  });
+  const payload = await response.json();
+  if (payload.error) throw new Error(payload.error.message || 'RPC 调用失败');
+  return payload.result || '0x';
+}
+
+async function ensurePolygon() {
+  await ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: CHAIN_ID_HEX }] });
+}
+
+async function connect() {
+  if (!window.ethereum) {
+    setStatus('请在 MetaMask 内置浏览器打开本页。', 'err');
+    return;
+  }
+  try {
+    await ensurePolygon();
+    const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+    account = accounts[0];
+    walletEl.textContent = account;
+    registerBtn.disabled = false;
+    publishBtn.disabled = false;
+    await checkStatus();
+  } catch (err) {
+    setStatus('连接失败：' + (err.message || String(err)), 'err');
+  }
+}
+
+async function connectQuietly() {
+  if (!window.ethereum) {
+    setStatus('请在 MetaMask 内置浏览器打开本页。', 'err');
+    return false;
+  }
+  try {
+    await ensurePolygon();
+    let accounts = await ethereum.request({ method: 'eth_accounts' });
+    if (!accounts || !accounts.length) accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+    account = accounts[0];
+    walletEl.textContent = account;
+    registerBtn.disabled = false;
+    publishBtn.disabled = false;
+    return true;
+  } catch (err) {
+    setStatus('自动连接失败：' + (err.message || String(err)), 'err');
+    return false;
+  }
+}
+
+async function checkStatus() {
+  if (!account) {
+    setStatus('请先连接钱包。');
+    return;
+  }
+  try {
+    const isRegisteredData = CALL_DATA.isRegisteredPrefix + strip0x(account).padStart(64, '0');
+    const registeredResult = await rpcCall(DEVELOPER_REGISTRY, isRegisteredData);
+    const appResult = await rpcCall(LICENSE_QUERY, CALL_DATA.getApp);
+    const registered = decodeBool(registeredResult);
+    const appFound = decodeBool(appResult);
+    const appId = decodeUintAt(appResult, 0);
+    const lines = [
+      '钱包：' + account,
+      '开发者注册：' + (registered ? '已注册' : '未注册'),
+      '排队长度统计：' + (appFound ? ('已发布，App ID ' + appId.toString()) : '未发布')
+    ];
+    registerBtn.disabled = registered;
+    publishBtn.disabled = !registered || appFound;
+    setStatus(lines.join('\n'), appFound ? 'ok' : '');
+  } catch (err) {
+    setStatus('链上状态检查失败：' + (err.message || String(err)), 'err');
+  }
+}
+
+function txOverrides(label) {
+  return {
+    gas: label === '注册开发者' ? '0x493e0' : '0xaae60',
+    gasPrice: '0x517da13700'
+  };
+}
+
+async function sendTx(to, data, label) {
+  if (!account) await connect();
+  if (!account) return '';
+  setStatus(label + '：等待 MetaMask 确认...');
+  const tx = Object.assign({ from: account, to, data }, txOverrides(label));
+  const txHash = await ethereum.request({ method: 'eth_sendTransaction', params: [tx] });
+  setStatus(label + ' 已提交：\n' + txHash + '\n\n等待链上确认：' + EXPLORER + '/tx/' + txHash);
+  setTimeout(checkStatus, 12000);
+  return txHash;
+}
+
+window.forceRegister = async function() {
+  try {
+    await sendTx(DEVELOPER_REGISTRY, CALL_DATA.register, '注册开发者');
+  } catch (err) {
+    setStatus('注册失败：' + (err.message || String(err)), 'err');
+  }
+};
+registerBtn.onclick = window.forceRegister;
+
+forceRegisterBtn.onclick = registerBtn.onclick;
+forceRegisterBtn.ontouchstart = function(event) {
+  event.preventDefault();
+  registerBtn.onclick();
+};
+
+window.forcePublish = async function() {
+  try {
+    const existing = await rpcCall(LICENSE_QUERY, CALL_DATA.getApp);
+    const appId = decodeUintAt(existing, 0);
+    if (decodeBool(existing)) {
+      setStatus('该应用已经发布过，App ID：' + appId.toString(), 'ok');
+      return;
+    }
+    await sendTx(APP_REGISTRY, CALL_DATA.publish, '发布排队长度统计');
+  } catch (err) {
+    setStatus('发布失败：' + (err.message || String(err)), 'err');
+  }
+};
+publishBtn.onclick = window.forcePublish;
+
+window.connect = connect;
+window.checkStatus = checkStatus;
+connectBtn.onclick = connect;
+checkBtn.onclick = checkStatus;
+
+async function autoRun() {
+  const params = new URLSearchParams(location.search);
+  let action = params.get('auto');
+  if (!action && location.pathname.indexOf('publish-register') >= 0) action = 'register';
+  if (!action && location.pathname.indexOf('publish-app') >= 0) action = 'publish';
+  const runId = params.get('run') || '';
+  if (!action || sessionStorage.getItem('auto-' + action) === runId) return;
+  sessionStorage.setItem('auto-' + action, runId);
+  setStatus('自动准备：' + action);
+  const ok = await connectQuietly();
+  if (!ok) return;
+  await checkStatus();
+  setTimeout(async function() {
+    try {
+      if (action === 'register') await sendTx(DEVELOPER_REGISTRY, CALL_DATA.register, '注册开发者');
+      if (action === 'publish') await publishBtn.onclick();
+    } catch (err) {
+      setStatus('自动执行失败：' + (err.message || String(err)), 'err');
+    }
+  }, 1200);
+}
+
+setTimeout(autoRun, 800);
+
+document.addEventListener('touchend', function() {
+  if (location.pathname.indexOf('publish-register') >= 0) registerBtn.onclick();
+}, { once: true });
+</script>
+</body>
+</html>
